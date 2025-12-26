@@ -1,0 +1,5 @@
+[In terminal 1]
+(age_of_tension) ...\server> python .\main.python
+
+[In terminal 2]
+...\client> npm run dev
