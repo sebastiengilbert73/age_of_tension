@@ -159,10 +159,10 @@ Player: "Invest in renewable energy infrastructure"
         "triggered": false
     },
     "relationships": {
-        "usa": {"sentiment": 20, "status": "friendly"},
+        "usa": {"sentiment": 20, "status": "allied"},
         "china": {"sentiment": -10, "status": "neutral"},
         "russia": {"sentiment": -5, "status": "neutral"},
-        "eu": {"sentiment": 15, "status": "friendly"},
+        "eu": {"sentiment": 15, "status": "allied"},
         "india": {"sentiment": 5, "status": "neutral"}
     }
     }
@@ -204,7 +204,7 @@ Player: "Strengthen diplomatic ties with Asia"
         "triggered": true
     },
     "relationships": {
-        "india": {"sentiment": 40, "status": "friendly"},
+        "india": {"sentiment": 40, "status": "allied"},
         "china": {"sentiment": -30, "status": "tense"}
     }
     }

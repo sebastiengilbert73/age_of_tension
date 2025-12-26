@@ -359,6 +359,10 @@ async def process_turn(data: PlayerInput):
             
             # Inject full territory state for frontend sync
             game_response["current_territories"] = state_manager.state.get("ownership", {})
+            
+            # Inject military data for hover info panel
+            game_response["military_data"] = state_manager.state.get("military", {})
+            game_response["intel_strength"] = state_manager.get_intel_strength(data.faction)
 
             return game_response
             
@@ -509,6 +513,10 @@ async def generate_briefing(data: dict):
             
             # Inject full territory state for frontend sync
             briefing_response["current_territories"] = state_manager.state.get("ownership", {})
+            
+            # Inject military data for hover info panel
+            briefing_response["military_data"] = state_manager.state.get("military", {})
+            briefing_response["intel_strength"] = state_manager.get_intel_strength(data.get("faction", "usa"))
 
             return briefing_response
         except json.JSONDecodeError as e:

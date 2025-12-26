@@ -146,23 +146,25 @@ function FactionSelector({ onSelectFaction, isProcessing, availableModels = [], 
                 </motion.button>
             </motion.div>
 
-            <button
-                className="reset-game-btn"
-                onClick={async () => {
-                    if (confirm('WARNING: This will delete your save file and restart the game world. Are you sure?')) {
-                        try {
-                            const axios = (await import('axios')).default
-                            await axios.post('/api/reset')
-                            sessionStorage.removeItem('gameSession')
-                            window.location.reload()
-                        } catch (e) {
-                            alert('Failed to reset game: ' + e.message)
+            {!isProcessing && (
+                <button
+                    className="reset-game-btn"
+                    onClick={async () => {
+                        if (confirm('WARNING: This will delete your save file and restart the game world. Are you sure?')) {
+                            try {
+                                const axios = (await import('axios')).default
+                                await axios.post('/api/reset')
+                                sessionStorage.removeItem('gameSession')
+                                window.location.reload()
+                            } catch (e) {
+                                alert('Failed to reset game: ' + e.message)
+                            }
                         }
-                    }
-                }}
-            >
-                ⚠️ RESET WORLD STATE
-            </button>
+                    }}
+                >
+                    ⚠️ RESET WORLD STATE
+                </button>
+            )}
         </div >
     )
 }

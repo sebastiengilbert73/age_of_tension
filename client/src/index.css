@@ -71,6 +71,30 @@ h3 {
   gap: 2rem;
 }
 
+/* Back to Menu Button */
+.back-to-menu-btn {
+  position: absolute;
+  top: 0.9rem;
+  left: 16rem;
+  background: transparent;
+  border: 1px solid rgba(0, 217, 255, 0.4);
+  color: var(--accent-cyan);
+  padding: 0.25rem 0.5rem;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.6rem;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: 4px;
+  z-index: 100;
+}
+
+.back-to-menu-btn:hover {
+  background: rgba(0, 217, 255, 0.15);
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 10px rgba(0, 217, 255, 0.3);
+}
+
 .status-item {
   display: flex;
   flex-direction: column;
@@ -569,6 +593,30 @@ h3 {
   background: var(--bg-secondary);
 }
 
+/* Reset Game Button */
+.reset-game-btn {
+  position: absolute;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: transparent;
+  border: 1px solid rgba(255, 51, 102, 0.4);
+  color: var(--accent-red);
+  padding: 0.5rem 1rem;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.7rem;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 4px;
+}
+
+.reset-game-btn:hover {
+  background: rgba(255, 51, 102, 0.15);
+  border-color: var(--accent-red);
+  box-shadow: 0 0 15px rgba(255, 51, 102, 0.3);
+}
+
 .faction-loading {
   display: flex;
   flex-direction: column;
@@ -650,6 +698,63 @@ h3 {
   height: 12px;
   border-radius: 2px;
   flex-shrink: 0;
+}
+
+/* Country Hover Info Panel */
+.country-info-panel {
+  background: rgba(5, 14, 26, 0.95);
+  border: 1px solid rgba(0, 217, 255, 0.3);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.5rem;
+  height: 72px;
+  /* Fixed height to prevent layout shift */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.country-info-panel.visible {
+  border-color: rgba(0, 217, 255, 0.6);
+  box-shadow: 0 0 10px rgba(0, 217, 255, 0.1);
+}
+
+.country-info-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.75rem;
+}
+
+.country-info-table td {
+  padding: 0.2rem 0.5rem;
+}
+
+.info-label {
+  color: #808080;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  width: 15%;
+}
+
+.info-value {
+  color: #e0e0e0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  width: 35%;
+}
+
+.faction-cell {
+  font-weight: 600;
+}
+
+.info-placeholder {
+  color: #606060;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.7rem;
+  letter-spacing: 1px;
 }
 
 

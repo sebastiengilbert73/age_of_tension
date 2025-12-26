@@ -24,6 +24,8 @@ function App() {
   const [currentEvent, setCurrentEvent] = useState(null)
   const [relationships, setRelationships] = useState({})
   const [territories, setTerritories] = useState(INITIAL_COUNTRY_TO_FACTION)
+  const [militaryData, setMilitaryData] = useState({})
+  const [intelStrength, setIntelStrength] = useState(50)
 
   // Restore session state from sessionStorage on mount
   useEffect(() => {
@@ -39,6 +41,8 @@ function App() {
           setRelationships(session.relationships || {})
           setTerritories(session.territories || INITIAL_COUNTRY_TO_FACTION)
           setSelectedModel(session.selectedModel || 'example:latest')
+          setMilitaryData(session.militaryData || {})
+          setIntelStrength(session.intelStrength || 50)
         }
       } catch (e) {
         console.error('Error restoring session:', e)
@@ -57,11 +61,13 @@ function App() {
         gameState,
         relationships,
         territories,
-        selectedModel
+        selectedModel,
+        militaryData,
+        intelStrength
       }
       sessionStorage.setItem('gameSession', JSON.stringify(session))
     }
-  }, [gameStarted, playerFaction, messages, gameState, relationships, territories, selectedModel])
+  }, [gameStarted, playerFaction, messages, gameState, relationships, territories, selectedModel, militaryData, intelStrength])
 
   // Fetch available models on mount
   useEffect(() => {
@@ -116,6 +122,14 @@ function App() {
         setTerritories(response.data.current_territories)
       }
 
+      // Sync military data for hover info
+      if (response.data.military_data) {
+        setMilitaryData(response.data.military_data)
+      }
+      if (response.data.intel_strength) {
+        setIntelStrength(response.data.intel_strength)
+      }
+
       setGameStarted(true)
     } catch (error) {
       console.error('Error getting briefing:', error)
@@ -167,6 +181,14 @@ function App() {
           ...prev,
           ...response.data.territory_updates
         }))
+      }
+
+      // Update military data for hover info
+      if (response.data.military_data) {
+        setMilitaryData(response.data.military_data)
+      }
+      if (response.data.intel_strength) {
+        setIntelStrength(response.data.intel_strength)
       }
 
       // Check if a random event was triggered
@@ -229,6 +251,16 @@ function App() {
         selectedModel={selectedModel}
         onModelChange={setSelectedModel}
       />
+      <button
+        className="back-to-menu-btn"
+        onClick={() => {
+          if (confirm('Return to faction selection? Your session will be preserved.')) {
+            setGameStarted(false)
+          }
+        }}
+      >
+        ← MENU
+      </button>
 
       <div className="main-content">
         <WorldMap
@@ -237,6 +269,8 @@ function App() {
           playerFaction={playerFaction}
           relationships={relationships}
           territories={territories}
+          militaryData={militaryData}
+          intelStrength={intelStrength}
         />
         <Terminal
           messages={messages}

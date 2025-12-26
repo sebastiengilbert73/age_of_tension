@@ -169,14 +169,44 @@ const FACTION_COLORS = {
 
 const RELATIONSHIP_COLORS = {
     allied: '#00FF00',
-    friendly: '#90EE90',
     neutral: '#FFD700',
     tense: '#FFA500',
     hostile: '#FF4500'
 }
 
-function WorldMap({ gameState, currentEvent, playerFaction, relationships = {}, territories = {} }) {
+// Country name mapping
+const COUNTRY_NAMES = {
+    'US': 'United States', 'CA': 'Canada', 'MX': 'Mexico', 'BR': 'Brazil', 'AR': 'Argentina',
+    'RU': 'Russia', 'CN': 'China', 'IN': 'India', 'JP': 'Japan', 'KR': 'South Korea',
+    'KP': 'North Korea', 'KZ': 'Kazakhstan', 'UA': 'Ukraine', 'DE': 'Germany', 'FR': 'France',
+    'GB': 'United Kingdom', 'IT': 'Italy', 'ES': 'Spain', 'PL': 'Poland', 'TR': 'Turkey',
+    'IR': 'Iran', 'IQ': 'Iraq', 'SA': 'Saudi Arabia', 'EG': 'Egypt', 'ZA': 'South Africa',
+    'AU': 'Australia', 'ID': 'Indonesia', 'PK': 'Pakistan', 'VN': 'Vietnam', 'TH': 'Thailand',
+    'IL': 'Israel', 'SY': 'Syria', 'AF': 'Afghanistan', 'BY': 'Belarus', 'PH': 'Philippines',
+    'CL': 'Chile', 'CO': 'Colombia', 'PE': 'Peru', 'VE': 'Venezuela', 'CU': 'Cuba',
+    'SE': 'Sweden', 'NO': 'Norway', 'FI': 'Finland', 'DK': 'Denmark', 'NL': 'Netherlands',
+    'BE': 'Belgium', 'CH': 'Switzerland', 'AT': 'Austria', 'CZ': 'Czechia', 'HU': 'Hungary',
+    'RO': 'Romania', 'BG': 'Bulgaria', 'GR': 'Greece', 'PT': 'Portugal', 'IE': 'Ireland',
+    'SK': 'Slovakia', 'HR': 'Croatia', 'RS': 'Serbia', 'BA': 'Bosnia', 'AL': 'Albania',
+    'MK': 'North Macedonia', 'ME': 'Montenegro', 'XK': 'Kosovo', 'MD': 'Moldova', 'LT': 'Lithuania',
+    'LV': 'Latvia', 'EE': 'Estonia', 'LU': 'Luxembourg', 'IS': 'Iceland', 'SI': 'Slovenia',
+    'PS': 'Palestine', 'NG': 'Nigeria', 'KE': 'Kenya', 'ET': 'Ethiopia', 'GH': 'Ghana'
+}
+
+const FACTION_NAMES = {
+    'usa': 'North American Alliance',
+    'russia': 'Russian Federation',
+    'china': 'Tianxia Federation',
+    'eu': 'European Directorate',
+    'india': 'Non-Aligned Movement',
+    'corporate': 'Corporate Alliance',
+    'rogue': 'Rogue State',
+    'neutral': 'Neutral'
+}
+
+function WorldMap({ gameState, currentEvent, playerFaction, relationships = {}, territories = {}, militaryData = {}, intelStrength = 50 }) {
     const [showEventFlash, setShowEventFlash] = useState(false)
+    const [hoveredCountry, setHoveredCountry] = useState(null)
 
     // Flash the map when an event occurs
     useEffect(() => {
@@ -220,9 +250,93 @@ function WorldMap({ gameState, currentEvent, playerFaction, relationships = {}, 
 
     const tensionColor = getTensionColor(gameState.defcon)
 
+    // Calculate military with uncertainty based on intel strength
+    const getMilitaryWithUncertainty = (countryCode) => {
+        const data = militaryData[countryCode]
+        if (!data) {
+            // Debug: log when military data is missing
+            if (Object.keys(militaryData).length === 0) {
+                console.log('DEBUG: militaryData is empty - reset game to get fresh data')
+            }
+            return null
+        }
+
+        // Higher intel = less uncertainty
+        // 100 intel = 0% uncertainty, 0 intel = 50% uncertainty
+        const uncertaintyPercent = Math.round((100 - intelStrength) / 2)
+
+        const applyUncertainty = (value) => {
+            if (intelStrength >= 80) return value.toLocaleString() // Near omniscience
+            const lower = Math.round(value * (1 - uncertaintyPercent / 100))
+            const upper = Math.round(value * (1 + uncertaintyPercent / 100))
+            return `${lower.toLocaleString()} - ${upper.toLocaleString()}`
+        }
+
+        return {
+            troops: applyUncertainty(data.troops || 0),
+            navy: applyUncertainty(data.navy || 0),
+            airforce: applyUncertainty(data.airforce || 0)
+        }
+    }
+
+    // Get hovered country info
+    const getHoveredCountryInfo = () => {
+        if (!hoveredCountry) return null
+
+        const faction = territories[hoveredCountry] || INITIAL_COUNTRY_TO_FACTION[hoveredCountry] || 'neutral'
+        const countryName = COUNTRY_NAMES[hoveredCountry] || hoveredCountry
+        const factionName = FACTION_NAMES[faction] || faction
+        const military = getMilitaryWithUncertainty(hoveredCountry)
+
+        // Get relationship if applicable
+        let relationshipStatus = 'Unknown'
+        if (faction === playerFaction?.id) {
+            relationshipStatus = 'Your Territory'
+        } else if (relationships[faction]) {
+            relationshipStatus = relationships[faction].status || 'Neutral'
+        }
+
+        return { countryName, faction, factionName, military, relationshipStatus }
+    }
+
+    const hoveredInfo = getHoveredCountryInfo()
+
     return (
         <div className={`map-panel ${showEventFlash ? 'event-flash' : ''}`}>
             <h3 className="map-title">Global Security Network</h3>
+
+            {/* Country Info Panel */}
+            <div className={`country-info-panel ${hoveredInfo ? 'visible' : ''}`}>
+                {hoveredInfo ? (
+                    <table className="country-info-table">
+                        <tbody>
+                            <tr>
+                                <td className="info-label">Country</td>
+                                <td className="info-value">{hoveredInfo.countryName}</td>
+                                <td className="info-label">Faction</td>
+                                <td className="info-value faction-cell" style={{ color: FACTION_COLORS[hoveredInfo.faction] }}>
+                                    {hoveredInfo.factionName}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td className="info-label">Troops</td>
+                                <td className="info-value">{hoveredInfo.military?.troops || 'No intel'}</td>
+                                <td className="info-label">Relationship</td>
+                                <td className="info-value">{hoveredInfo.relationshipStatus}</td>
+                            </tr>
+                            <tr>
+                                <td className="info-label">Navy</td>
+                                <td className="info-value">{hoveredInfo.military?.navy || 'No intel'}</td>
+                                <td className="info-label">Air Force</td>
+                                <td className="info-value">{hoveredInfo.military?.airforce || 'No intel'}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                ) : (
+                    <div className="info-placeholder">Hover over a country for intel</div>
+                )}
+            </div>
+
             <div className="world-map">
                 <AnimatePresence>
                     {showEventFlash && (
@@ -289,6 +403,9 @@ function WorldMap({ gameState, currentEvent, playerFaction, relationships = {}, 
                                     animate={{ opacity: 1, scale: 1 }}
                                     transition={{ duration: 0.8, delay: 0.2 }}
                                     whileHover={{ fillOpacity: 0.7, strokeWidth: 2 }}
+                                    onMouseEnter={() => setHoveredCountry(countryCode)}
+                                    onMouseLeave={() => setHoveredCountry(null)}
+                                    style={{ cursor: 'pointer' }}
                                 />
                                 {/* Pulse effect for player territory */}
                                 {isPlayer && (
@@ -354,10 +471,6 @@ function WorldMap({ gameState, currentEvent, playerFaction, relationships = {}, 
                         <div className="legend-item">
                             <div className="legend-color" style={{ background: RELATIONSHIP_COLORS.allied }}></div>
                             <span>Allied</span>
-                        </div>
-                        <div className="legend-item">
-                            <div className="legend-color" style={{ background: RELATIONSHIP_COLORS.friendly }}></div>
-                            <span>Friendly</span>
                         </div>
                         <div className="legend-item">
                             <div className="legend-color" style={{ background: RELATIONSHIP_COLORS.neutral }}></div>
