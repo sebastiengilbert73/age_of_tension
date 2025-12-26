@@ -25,6 +25,44 @@ function App() {
   const [relationships, setRelationships] = useState({})
   const [territories, setTerritories] = useState(INITIAL_COUNTRY_TO_FACTION)
 
+  // Restore session state from sessionStorage on mount
+  useEffect(() => {
+    const savedSession = sessionStorage.getItem('gameSession')
+    if (savedSession) {
+      try {
+        const session = JSON.parse(savedSession)
+        if (session.gameStarted) {
+          setGameStarted(true)
+          setPlayerFaction(session.playerFaction)
+          setMessages(session.messages || [])
+          setGameState(session.gameState)
+          setRelationships(session.relationships || {})
+          setTerritories(session.territories || INITIAL_COUNTRY_TO_FACTION)
+          setSelectedModel(session.selectedModel || 'example:latest')
+        }
+      } catch (e) {
+        console.error('Error restoring session:', e)
+        sessionStorage.removeItem('gameSession')
+      }
+    }
+  }, [])
+
+  // Save session state to sessionStorage when it changes
+  useEffect(() => {
+    if (gameStarted) {
+      const session = {
+        gameStarted,
+        playerFaction,
+        messages,
+        gameState,
+        relationships,
+        territories,
+        selectedModel
+      }
+      sessionStorage.setItem('gameSession', JSON.stringify(session))
+    }
+  }, [gameStarted, playerFaction, messages, gameState, relationships, territories, selectedModel])
+
   // Fetch available models on mount
   useEffect(() => {
     const fetchModels = async () => {

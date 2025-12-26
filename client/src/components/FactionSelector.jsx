@@ -153,6 +153,7 @@ function FactionSelector({ onSelectFaction, isProcessing, availableModels = [], 
                         try {
                             const axios = (await import('axios')).default
                             await axios.post('/api/reset')
+                            sessionStorage.removeItem('gameSession')
                             window.location.reload()
                         } catch (e) {
                             alert('Failed to reset game: ' + e.message)
