@@ -264,6 +264,51 @@ const FACTION_NAMES = {
 function WorldMap({ gameState, currentEvent, playerFaction, relationships = {}, territories = {}, militaryData = {}, intelStrength = 50 }) {
     const [showEventFlash, setShowEventFlash] = useState(false)
     const [hoveredCountry, setHoveredCountry] = useState(null)
+    const [transform, setTransform] = useState({ x: 0, y: 0, k: 1 })
+    const [isDragging, setIsDragging] = useState(false)
+    const [startPan, setStartPan] = useState({ x: 0, y: 0 })
+
+    const handleWheel = (e) => {
+        e.preventDefault()
+        const scaleAmount = -e.deltaY * 0.001
+        const newScale = Math.min(Math.max(0.5, transform.k * (1 + scaleAmount)), 8)
+
+        // Calculate center of the SVG container
+        const svg = e.currentTarget
+        const rect = svg.getBoundingClientRect()
+        const cx = rect.width / 2
+        const cy = rect.height / 2
+
+        // Calculate new translation to keep the center point fixed
+        // newKey = center - (center - oldKey) * (newScale / oldScale)
+        const scaleRatio = newScale / transform.k
+        const newX = cx - (cx - transform.x) * scaleRatio
+        const newY = cy - (cy - transform.y) * scaleRatio
+
+        setTransform({
+            k: newScale,
+            x: newX,
+            y: newY
+        })
+    }
+
+    const handleMouseDown = (e) => {
+        e.preventDefault()
+        setIsDragging(true)
+        setStartPan({ x: e.clientX - transform.x, y: e.clientY - transform.y })
+    }
+
+    const handleMouseMove = (e) => {
+        if (!isDragging) return
+        e.preventDefault()
+        const newX = e.clientX - startPan.x
+        const newY = e.clientY - startPan.y
+        setTransform(prev => ({ ...prev, x: newX, y: newY }))
+    }
+
+    const handleMouseUp = () => {
+        setIsDragging(false)
+    }
 
     // Flash the map when an event occurs
     useEffect(() => {
@@ -409,9 +454,19 @@ function WorldMap({ gameState, currentEvent, playerFaction, relationships = {}, 
                     )}
                 </AnimatePresence>
 
-                <svg width="100%" height="100%" viewBox="-13.473 -16.04 1021.74 944.62">
+                <svg
+                    width="100%"
+                    height="100%"
+                    viewBox="-13.473 -16.04 1021.74 944.62"
+                    onWheel={handleWheel}
+                    onMouseDown={handleMouseDown}
+                    onMouseMove={handleMouseMove}
+                    onMouseUp={handleMouseUp}
+                    onMouseLeave={handleMouseUp}
+                    style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+                >
                     {/* World background */}
-                    <rect x="-100" y="-100" width="1200" height="1200" fill="#050e1a" />
+                    <rect x="-5000" y="-5000" width="10000" height="10000" fill="#050e1a" />
 
                     {/* Ocean grid */}
                     <defs>
@@ -419,7 +474,7 @@ function WorldMap({ gameState, currentEvent, playerFaction, relationships = {}, 
                             <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(0,217,255,0.05)" strokeWidth="0.5" />
                         </pattern>
                     </defs>
-                    <rect x="-100" y="-100" width="1200" height="1200" fill="url(#grid)" />
+                    <rect x="-5000" y="-5000" width="10000" height="10000" fill="url(#grid)" />
 
                     {/* Dot pattern for contested territories */}
                     <defs>
@@ -428,98 +483,90 @@ function WorldMap({ gameState, currentEvent, playerFaction, relationships = {}, 
                         </pattern>
                     </defs>
 
-                    {/* Country territories */}
-                    {Object.entries(countriesData).map(([countryCode, path]) => {
-                        let factionId = 'neutral'
-                        let isContested = false
+                    <g transform={`translate(${transform.x}, ${transform.y}) scale(${transform.k})`}>
+                        {Object.entries(countriesData).map(([countryCode, path]) => {
+                            let factionId = 'neutral'
+                            let isContested = false
 
-                        const territoryData = territories[countryCode] || INITIAL_COUNTRY_TO_FACTION[countryCode]
+                            const territoryData = territories[countryCode] || INITIAL_COUNTRY_TO_FACTION[countryCode]
 
-                        if (territoryData) {
-                            if (typeof territoryData === 'string') {
-                                factionId = territoryData
-                            } else {
-                                factionId = territoryData.owner || 'neutral'
-                                isContested = territoryData.isContested || false
+                            if (territoryData) {
+                                if (typeof territoryData === 'string') {
+                                    factionId = territoryData
+                                } else {
+                                    factionId = territoryData.owner || 'neutral'
+                                    isContested = territoryData.isContested || false
+                                }
                             }
-                        }
 
-                        const fillColor = getFactionColor(factionId)
-                        const borderColor = getRelationshipColor(factionId)
-                        const isPlayer = playerFaction && factionId === playerFaction.id
+                            const fillColor = getFactionColor(factionId)
+                            const borderColor = getRelationshipColor(factionId)
+                            const isPlayer = playerFaction && factionId === playerFaction.id
 
-                        return (
-                            <g key={countryCode}>
-                                <motion.path
-                                    d={path}
-                                    fill={fillColor}
-                                    fillOpacity={0.4}
-                                    stroke={isPlayer ? FACTION_COLORS.player : borderColor}
-                                    strokeWidth={isPlayer ? 1.5 : 1}
-                                    initial={{ opacity: 0, scale: 0.95 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    transition={{ duration: 0.8, delay: 0.2 }}
-                                    whileHover={{ fillOpacity: 0.7, strokeWidth: 2 }}
-                                    onMouseEnter={() => setHoveredCountry(countryCode)}
-                                    onMouseLeave={() => setHoveredCountry(null)}
-                                    style={{ cursor: 'pointer' }}
-                                />
-                                {/* Pulse effect for player territory */}
-                                {isPlayer && (
+                            return (
+                                <g key={countryCode}>
                                     <motion.path
                                         d={path}
-                                        fill="none"
-                                        stroke={FACTION_COLORS.player}
-                                        strokeWidth={1}
-                                        opacity={0}
-                                        animate={{
-                                            opacity: [0, 0.3, 0],
-                                            strokeWidth: [1, 3, 1]
-                                        }}
-                                        transition={{ duration: 3, repeat: Infinity }}
+                                        fill={fillColor}
+                                        fillOpacity={0.4}
+                                        stroke={isPlayer ? FACTION_COLORS.player : borderColor}
+                                        strokeWidth={(isPlayer ? 1.5 : 1) / transform.k} // Adjust stroke based on zoom
+                                        initial={{ opacity: 0, scale: 0.95 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        transition={{ duration: 0.8, delay: 0.2 }}
+                                        whileHover={{ fillOpacity: 0.7, strokeWidth: 2 / transform.k }}
+                                        onMouseEnter={() => setHoveredCountry(countryCode)}
+                                        onMouseLeave={() => setHoveredCountry(null)}
+                                        style={{ cursor: 'pointer' }}
                                     />
-                                )}
-                                {/* Contested territory overlay (dots) */}
-                                {isContested && playerFaction && (
-                                    <motion.path
-                                        d={path}
-                                        fill="url(#dots)"
-                                        className="contested-dots"
-                                        style={{ color: FACTION_COLORS.player }}
-                                        fillOpacity={1}
-                                        stroke={FACTION_COLORS.player}
-                                        strokeWidth={1}
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        transition={{ duration: 1 }}
-                                    />
-                                )}
-                            </g>
-                        )
-                    })}
-
-                    {/* DEFCON indicator */}
-                    <g transform="translate(20, 900)">
-                        <text
-                            x="0"
-                            y="0"
-                            fill={tensionColor}
-                            fontSize="18"
-                            fontFamily="Orbitron"
-                            fontWeight="600"
-                        >
-                            DEFCON {gameState.defcon}
-                        </text>
-                        <motion.circle
-                            cx="130"
-                            cy="-6"
-                            r="8"
-                            fill={tensionColor}
-                            animate={{ opacity: [0.4, 1, 0.4] }}
-                            transition={{ duration: 1.5, repeat: Infinity }}
-                        />
+                                    {/* Pulse effect for player territory */}
+                                    {isPlayer && (
+                                        <motion.path
+                                            d={path}
+                                            fill="none"
+                                            stroke={FACTION_COLORS.player}
+                                            strokeWidth={1 / transform.k}
+                                            opacity={0}
+                                            animate={{
+                                                opacity: [0, 0.3, 0],
+                                                strokeWidth: [1 / transform.k, 3 / transform.k, 1 / transform.k]
+                                            }}
+                                            transition={{ duration: 3, repeat: Infinity }}
+                                        />
+                                    )}
+                                    {/* Contested territory overlay (dots) */}
+                                    {isContested && playerFaction && (
+                                        <motion.path
+                                            d={path}
+                                            fill="url(#dots)"
+                                            className="contested-dots"
+                                            style={{ color: FACTION_COLORS.player }}
+                                            fillOpacity={1}
+                                            stroke={FACTION_COLORS.player}
+                                            strokeWidth={1 / transform.k}
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            transition={{ duration: 1 }}
+                                        />
+                                    )}
+                                </g>
+                            )
+                        })}
                     </g>
                 </svg>
+
+                {/* DEFCON indicator - Overlay */}
+                <div className="defcon-overlay">
+                    <div className="defcon-text" style={{ color: tensionColor }}>
+                        DEFCON {gameState.defcon}
+                    </div>
+                    <motion.div
+                        className="defcon-light"
+                        style={{ backgroundColor: tensionColor }}
+                        animate={{ opacity: [0.4, 1, 0.4] }}
+                        transition={{ duration: 1.5, repeat: Infinity }}
+                    />
+                </div>
 
                 {/* Legend */}
                 <div className="map-legend">

@@ -823,3 +823,34 @@ h3 {
   border-top: 8px solid var(--accent-cyan);
   pointer-events: none;
 }
+
+/* DEFCON Overlay */
+.defcon-overlay {
+  position: absolute;
+  bottom: 2rem;
+  left: 3rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  z-index: 5;
+  pointer-events: none;
+  background: rgba(13, 17, 23, 0.8);
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  border: 1px solid rgba(0, 217, 255, 0.2);
+  backdrop-filter: blur(4px);
+}
+
+.defcon-text {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 600;
+  font-size: 1.1rem;
+  letter-spacing: 2px;
+}
+
+.defcon-light {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  box-shadow: 0 0 10px currentColor;
+}
