@@ -595,10 +595,9 @@ h3 {
 
 /* Reset Game Button */
 .reset-game-btn {
-  position: absolute;
-  bottom: 1.5rem;
-  left: 50%;
-  transform: translateX(-50%);
+  display: block;
+  margin: 1.5rem auto 0;
+  position: relative;
   background: transparent;
   border: 1px solid rgba(255, 51, 102, 0.4);
   color: var(--accent-red);
@@ -853,4 +852,26 @@ h3 {
   height: 16px;
   border-radius: 50%;
   box-shadow: 0 0 10px currentColor;
+}
+
+/* Reset Notification Toast */
+.reset-notification {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  /* Transform handled by Framer Motion for centering */
+  background: rgba(13, 17, 23, 0.95);
+  border: 2px solid var(--accent-cyan);
+  color: var(--accent-cyan);
+  padding: 2rem 4rem;
+  border-radius: 12px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  z-index: 10000;
+  box-shadow: 0 0 50px rgba(0, 217, 255, 0.4);
+  text-align: center;
+  letter-spacing: 2px;
+  pointer-events: none;
+  backdrop-filter: blur(10px);
 }

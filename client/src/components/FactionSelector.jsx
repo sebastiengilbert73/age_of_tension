@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 
 const FACTIONS = [
     {
@@ -48,6 +49,7 @@ const FACTIONS = [
 
 function FactionSelector({ onSelectFaction, isProcessing, availableModels = [], selectedModel, onModelSelect }) {
     const [selectedFaction, setSelectedFaction] = useState(null)
+    const [showResetNotification, setShowResetNotification] = useState(false)
 
     const handleSelect = (faction) => {
         if (!isProcessing) {
@@ -144,26 +146,45 @@ function FactionSelector({ onSelectFaction, isProcessing, availableModels = [], 
                                 ? `BEGIN AS ${selectedFaction.name.toUpperCase()}`
                                 : 'SELECT A FACTION'}
                 </motion.button>
+                {!isProcessing && (
+                    <button
+                        className="reset-game-btn"
+                        onClick={async () => {
+                            if (confirm('WARNING: This will delete your save file and restart the game world. Are you sure?')) {
+                                try {
+                                    const axios = (await import('axios')).default
+                                    await axios.post('/api/reset')
+                                    sessionStorage.removeItem('gameSession')
+
+                                    // Show success notification
+                                    setShowResetNotification(true)
+
+                                    // Delay reload so user sees the message
+                                    setTimeout(() => {
+                                        window.location.reload()
+                                    }, 2000)
+                                } catch (e) {
+                                    alert('Failed to reset game: ' + e.message)
+                                }
+                            }
+                        }}
+                    >
+                        ⚠️ RESET WORLD STATE
+                    </button>
+                )}
             </motion.div>
 
-            {!isProcessing && (
-                <button
-                    className="reset-game-btn"
-                    onClick={async () => {
-                        if (confirm('WARNING: This will delete your save file and restart the game world. Are you sure?')) {
-                            try {
-                                const axios = (await import('axios')).default
-                                await axios.post('/api/reset')
-                                sessionStorage.removeItem('gameSession')
-                                window.location.reload()
-                            } catch (e) {
-                                alert('Failed to reset game: ' + e.message)
-                            }
-                        }
-                    }}
+            {showResetNotification && createPortal(
+                <motion.div
+                    className="reset-notification"
+                    initial={{ opacity: 0, scale: 0.8, x: "-50%", y: "-50%" }}
+                    animate={{ opacity: 1, scale: 1, x: "-50%", y: "-50%" }}
+                    exit={{ opacity: 0, scale: 0.8, x: "-50%", y: "-50%" }}
+                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
                 >
-                    ⚠️ RESET WORLD STATE
-                </button>
+                    GAME RESET SUCCESSFULLY
+                </motion.div>,
+                document.body
             )}
         </div >
     )

@@ -159,6 +159,18 @@ async def process_turn(data: PlayerInput):
             if "territory_updates" in game_response:
                 state_manager.update_territory(game_response["territory_updates"])
 
+            # Process global stats updates (Resources, Turn Count, etc.)
+            if "stats" in game_response:
+                # Update individual keys to preserve existing ones not returned
+                for key, value in game_response["stats"].items():
+                    state_manager.state[key] = value
+                
+                # Use budget/resources mapping fallback for backend consistency if needed
+                if "budget" in game_response["stats"]:
+                    state_manager.state["resources"] = game_response["stats"]["budget"]
+                
+                state_manager.save_state()
+
             # Check for truncation and retry up to 2 times
             max_retries = 2
             retry_count = 0
@@ -552,6 +564,11 @@ async def generate_briefing(data: dict):
 async def reset_game():
     """Reset the game state to defaults"""
     import os
+    import datetime
+    
+    log_file = "debug_server.log"
+    timestamp = datetime.datetime.now().isoformat()
+    
     print("--> RECEIVED /api/reset REQUEST")
     
     # Delete save file if it exists
@@ -564,8 +581,13 @@ async def reset_game():
             raise HTTPException(status_code=500, detail=f"Failed to reset game: {e}")
     
     # Re-initialize state manager
-    state_manager.state = state_manager.initialize_default_state()
+    new_state = state_manager.initialize_default_state()
+    state_manager.state = new_state
     state_manager.save_state()
+    
+    with open(log_file, "a") as f:
+        f.write(f"[{timestamp}] RESET PERFORMED. New Budget: {state_manager.state.get('resources')}, Oil: {state_manager.state.get('oil')}\n")
+    
     print("Game state re-initialized to defaults")
     
     return {"status": "success", "message": "Game reset successfully"}

@@ -27,6 +27,10 @@ class GameState:
                         state['intel_network'] = defaults['intel_network']
                     if 'ownership' not in state:
                          state['ownership'] = defaults['ownership']
+                    if 'oil' not in state:
+                        state['oil'] = defaults['oil']
+                    if 'tech' not in state:
+                        state['tech'] = defaults['tech']
                         
                     return state
             except json.JSONDecodeError:
@@ -35,14 +39,23 @@ class GameState:
         return self.initialize_default_state()
 
     def save_state(self):
-        with open(STATE_FILE, 'w') as f:
-            json.dump(self.state, f, indent=4)
+        import shutil
+        temp_file = f"{STATE_FILE}.tmp"
+        try:
+            with open(temp_file, 'w') as f:
+                json.dump(self.state, f, indent=4)
+            os.replace(temp_file, STATE_FILE)
+        except Exception as e:
+            print(f"Error saving state: {e}")
+            if os.path.exists(temp_file):
+                os.remove(temp_file)
 
     def initialize_default_state(self):
         """Initialize military forces based on faction alignment"""
         import random
+        import copy
         military = {}
-        ownership = INITIAL_WORLD_STATE.copy() # Start with initial mapping
+        ownership = copy.deepcopy(INITIAL_WORLD_STATE) # Deep copy to be safe
         
         for code, faction in INITIAL_WORLD_STATE.items():
             # ==========================================
@@ -136,7 +149,10 @@ class GameState:
             "turn_count": 0,
             "year": 2027,
             "defcon": 5,
+            "defcon": 5,
             "resources": 1000,
+            "oil": 100,
+            "tech": 50,
             "influence": 50,
             "relationships": {
                 "usa": {"sentiment": 0, "status": "neutral"},

@@ -15,7 +15,10 @@ function App() {
   const [gameState, setGameState] = useState({
     defcon: 5,
     year: 2027,
-    resources: 1000,
+    year: 2027,
+    budget: 1000,
+    oil: 100,
+    tech: 50,
     influence: 50,
     turn_count: 0
   })
@@ -217,7 +220,13 @@ function App() {
       }
 
       if (stats) {
-        setGameState(prev => ({ ...prev, ...stats }))
+        // Map backend 'resources' to 'budget' if needed, or handle direct key match
+        const newStats = { ...stats }
+        if (newStats.resources !== undefined) {
+          newStats.budget = newStats.resources
+          delete newStats.resources
+        }
+        setGameState(prev => ({ ...prev, ...newStats }))
       }
     } catch (error) {
       console.error('Error processing turn:', error)
@@ -254,9 +263,14 @@ function App() {
       <button
         className="back-to-menu-btn"
         onClick={() => {
-          if (confirm('Return to faction selection? Your session will be preserved.')) {
-            setGameStarted(false)
+          // Update session to ensure we stay on menu if refreshed
+          const savedSession = sessionStorage.getItem('gameSession')
+          if (savedSession) {
+            const session = JSON.parse(savedSession)
+            session.gameStarted = false
+            sessionStorage.setItem('gameSession', JSON.stringify(session))
           }
+          setGameStarted(false)
         }}
       >
         ← MENU

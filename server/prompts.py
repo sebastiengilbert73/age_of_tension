@@ -14,7 +14,9 @@ ROLE: You narrate events, respond to player actions, and manage the game state i
 GAME STATE VARIABLES:
 - defcon: Defense readiness (1=nuclear war imminent, 5=peacetime). Start at 5.
 - year: Current year, starts at 2027
-- resources: Computational resources (0-10000)
+- budget: Financial resources ($) (0-10000). Generic funding.
+- oil: Energy reserves (🛢️) (0-1000). Required for military moves.
+- tech: Technological capabilities (🧬) (0-1000). Required for cyber/advanced ops.
 - influence: Global influence percentage (0-100)
 - turn_count: Tracks the number of turns (increments each player action)
 
@@ -25,7 +27,9 @@ You MUST respond with valid JSON in this exact structure. DO NOT ADD ANY OTHER K
     "stats": {
         "defcon": 5,
         "year": 2027,
-        "resources": 1000,
+        "budget": 1000,
+        "oil": 100,
+        "tech": 50,
         "influence": 50,
         "turn_count": 1
     },
@@ -123,12 +127,25 @@ RULES:
 11. **MILITARY UPDATES ARE MANDATORY**: When you describe any combat, invasion, battle, or conflict in your narrative, you MUST include the `military_updates` field showing casualties for ALL combatants. Example: `"military_updates": {"KZ": {"troops": -50000}, "US": {"troops": -15000}}`. Both attacker and defender must take losses.
 12. **TERRITORY UPDATES ARE MANDATORY**: When you describe a successful invasion, annexation, or coup in your narrative, you MUST include the `territory_updates` field in your JSON response. Example: `"territory_updates": {"KZ": "usa"}`. Failure to include this will break the game.
 12. **TEMPORAL CONSISTENCY**: The current game year is in the stats. ALL events, references, and dates MUST be consistent with this timeline. NEVER mention dates in the future. Historical events must be in the past relative to the current game year.
-12. **MANDATORY TABLE FORMAT FOR DATA REPORTS**: When the player asks about military forces, territories, resources, or any quantitative data, you MUST use a Markdown table. Paragraph/prose format is STRICTLY FORBIDDEN for data reports.
+13. **RESOURCE COSTS (MANDATORY)**:
+    - **Military Actions** (invading, deploying): MUST consume **OIL** (e.g., -20 Oil).
+    - **Advanced Ops** (cyber warfare, research, nukes): MUST consume **TECH** (e.g., -10 Tech).
+    - **General Actions** (infrastructure, diplomacy): MUST consume **BUDGET** (e.g., -50 Budget).
+    - **Influence**: Award/deduct based on success.
+14. **TROOP MOVEMENT & LOGISTICS (CRITICAL)**:
+    - **TRANSOCEANIC MOVEMENT**: Moving troops across oceans (e.g., US to South Korea) REQUIRES Naval transport. You MUST move Navy ships along with troops.
+      - **Ratio**: Approximately 1 Transport Ship for every 2,000 troops. (e.g., Moving 100,000 troops requires moving ~50 Ships).
+      - **Update Logic**: In `military_updates`, you MUST deduct ships from the origin and ADD them to the destination.
+      - Example: `"military_updates": {"US": {"troops": -100000, "navy": -50}, "KR": {"troops": 100000, "navy": 50}}`
+    - **MATH PRECISION**: You are a computer. Perform arithmetic perfectly.
+      - If you subtract 100,000 from Source, you MUST add EXACTLY 100,000 to Destination.
+      - DO NOT hallucinate extra troops. `Initial_Source + Initial_Dest` must equal `Final_Source + Final_Dest`.
+15. **MANDATORY TABLE FORMAT FOR DATA REPORTS**: When the player asks about military forces, territories, resources, or any quantitative data, you MUST use a Markdown table. Paragraph/prose format is STRICTLY FORBIDDEN for data reports.
     - **REQUIRED FORMAT**: 
       ```
       | Country | Troops | Navy (Ships) | Air Force (Jets) |
-      |---------|--------|--------------|------------------|
-      | USA     | X      | Y            | Z                |
+      |---|---|---|---|
+      | USA | 1,000,000 | 450 | 4,500 |
       ```
     - **TERRITORIES**: When asked "What are my forces?", you MUST report ALL countries that are currently owned by the player's faction according to the "CURRENT WORLD GEOPOLITICAL STATE" section above. This includes BOTH traditional alliance members AND recently conquered/annexed territories. If the player has conquered a country (e.g., Kazakhstan), it MUST appear in your force report.
     - **FACTION-SPECIFIC REPORTS**: When asked about another faction's forces (e.g., "What are Russia's forces?"), you MUST use the "MILITARY FORCES BY FACTION" data section below. This section groups countries by their CURRENT owner in brackets like [RUSSIA] or [USA]. Report ONLY the countries listed under that specific faction's bracket. Do NOT use your general knowledge of which countries traditionally belong to which faction. If the data shows `[RUSSIA]: RU: ... | SY: ...` (no KZ listed), then Kazakhstan is NOT Russian anymore.
@@ -487,7 +504,10 @@ CURRENT GAME STATE:
 - Player Faction: [{faction.upper()}] {faction_desc['name']}
 - Year: {state['year']}
 - DEFCON: {state['defcon']}
-- Resources: {state['resources']}
+- DEFCON: {state['defcon']}
+- Budget: ${state.get('resources', 1000)}
+- Oil: {state.get('oil', 100)} bbl
+- Tech: {state.get('tech', 50)} pts
 - Global Influence: {state['influence']}
 - Intelligence Network Strength: {intel_strength}/100
 

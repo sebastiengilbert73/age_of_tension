@@ -34,8 +34,24 @@ function StatusPanel({ gameState, availableModels = [], selectedModel, onModelCh
                 </div>
 
                 <div className="status-item">
-                    <span className="status-label">Resources</span>
-                    <span className="status-value">{gameState.resources}</span>
+                    <span className="status-label">Budget</span>
+                    <span className="status-value" style={{ color: '#4ade80' }}>
+                        ${gameState.budget || gameState.resources || 0}
+                    </span>
+                </div>
+
+                <div className="status-item">
+                    <span className="status-label">Oil</span>
+                    <span className="status-value" style={{ color: '#fb923c' }}>
+                        {gameState.oil || 0} 🛢️
+                    </span>
+                </div>
+
+                <div className="status-item">
+                    <span className="status-label">Tech</span>
+                    <span className="status-value" style={{ color: '#60a5fa' }}>
+                        {gameState.tech || 0} 🧬
+                    </span>
                 </div>
 
                 <div className="status-item">
