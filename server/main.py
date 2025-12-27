@@ -89,6 +89,41 @@ async def process_turn(data: PlayerInput):
             "content": prompt_content
         })
         
+        # Event Director Logic
+        current_turn = state_manager.state.get("turn_count", 0)
+        last_event = state_manager.state.get("last_event_turn", -5)
+        turns_since = current_turn - last_event
+        
+        # Increasing probability: 0% at 0 turns, 20% at 1, 40% at 2 ... 100% at 5
+        import random
+        force_event = False
+        if turns_since >= 4:
+            prob = (turns_since - 1) * 25 # 75%, 100%
+            if random.randint(0, 100) < prob:
+                force_event = True
+        
+        # Don't force event if player is asking a question (let them get their answer)
+        # Simple heuristic: if input starts with question words
+        if data.input.lower().strip().split(' ')[0] in ["what", "how", "why", "who", "when", "where"]:
+            force_event = False
+
+        if force_event:
+            log(f"DIRECTOR: Forcing Random Event (Turns since last: {turns_since})")
+            messages.append({
+                "role": "system",
+                "content": "SYSTEM DIRECTIVE: You MUST generate a Random Event (CRISIS, RESOURCE_SHOCK, etc.) in this response. Do not defer it. Make it relevant to the current situation."
+            })
+        
+        # Recent Event Continuity (Memory Injection)
+        # If an event happened recently (within 3 turns), force the AI to remember it
+        recent_event_data = state_manager.state.get("last_event_data")
+        if recent_event_data and turns_since < 3:
+             log(f"DIRECTOR: Injecting Recent Event Context: {recent_event_data.get('title')}")
+             messages.append({
+                "role": "system",
+                "content": f"WORLD STATE UPDATE: A major event recently occurred ({recent_event_data.get('title')}: {recent_event_data.get('description')}). Ensure your narrative reflects the ongoing consequences of this crisis if the player ignores it."
+             })
+
         # Add recent history (last 5 exchanges to manage context window)
         recent_history = data.history[-10:] if len(data.history) > 10 else data.history
         for msg in recent_history:
@@ -372,6 +407,17 @@ async def process_turn(data: PlayerInput):
                 # Increment turn count if not explicit
                 state_manager.state["turn_count"] = state_manager.state.get("turn_count", 0) + 1
             
+            # 2b. Apply Event Impact (if relevant)
+            # The AI might put negative costs in event.impact for Crises
+            if "event" in game_response and game_response["event"].get("triggered"):
+                 impact = game_response["event"].get("impact", {})
+                 if impact:
+                     log(f"EVENT IMPACT DETECTED: {impact}")
+                     apply_delta("resources", impact.get("budget", 0))
+                     apply_delta("oil", impact.get("oil", 0))
+                     apply_delta("tech", impact.get("tech", 0))
+                     apply_delta("influence", impact.get("influence", 0))
+
             # 3. Fallback for legacy 'stats' object (if LLM ignores instructions)
             elif "stats" in game_response:
                 # If LLM returns absolute stats, we try to use them but warn
@@ -417,20 +463,31 @@ async def process_turn(data: PlayerInput):
                 # it should not be marked as random_event
                 if event.get("type") == "random_event":
                     # Check if the recent player input is being directly addressed
-                    player_input = data.input.lower()
-                    narrative_lower = game_response.get("narrative", "").lower()
+                    # BUT if we forced the event, trust the Director
+                    if not force_event:
+                        player_input = data.input.lower()
+                        
+                        # Common patterns that indicate a direct response
+                        question_words = ["what", "how", "why", "when", "where", "who", "is", "are", "can", "will", "would"]
+                        is_question = any(player_input.strip().startswith(word) for word in question_words)
+                        
+                        if is_question:
+                            log(f"WARNING: Correcting event type - player asked a question: '{data.input[:50]}'")
+                            game_response["event"] = {
+                                "type": "player_response",
+                                "triggered": False
+                            }
                     
-                    # Common patterns that indicate a direct response
-                    question_words = ["what", "how", "why", "when", "where", "who", "is", "are", "can", "will", "would"]
-                    is_question = any(player_input.strip().startswith(word) for word in question_words)
-                    
-                    if is_question:
-                        log(f"WARNING: Correcting event type - player asked a question: '{data.input[:50]}'")
-                        game_response["event"] = {
-                            "type": "player_response",
-                            "triggered": False
-                        }
-            
+                # Update Last Event Turn if a real event triggered
+                if game_response["event"].get("triggered") and game_response["event"].get("type") != "player_response":
+                    state_manager.state["last_event_turn"] = state_manager.state.get("turn_count", 0)
+                    state_manager.state["last_event_data"] = {
+                        "title": game_response["event"].get("title", "Unknown Event"),
+                        "description": game_response["event"].get("description", "No description provided.")
+                    }
+                    state_manager.save_state()
+                    log(f"EVENT TRIGGERED: Recorded at turn {state_manager.state['last_event_turn']}")
+
             # Inject full territory state for frontend sync
             game_response["current_territories"] = state_manager.state.get("ownership", {})
             

@@ -31,6 +31,9 @@ function App() {
   const [militaryData, setMilitaryData] = useState({})
   const [intelStrength, setIntelStrength] = useState(50)
 
+  /* New State for Breaking News Ticker */
+  const [newsHeadline, setNewsHeadline] = useState("")
+
   // Restore session state from sessionStorage on mount
   useEffect(() => {
     const savedSession = sessionStorage.getItem('gameSession')
@@ -47,6 +50,13 @@ function App() {
           setSelectedModel(session.selectedModel || 'example:latest')
           setMilitaryData(session.militaryData || {})
           setIntelStrength(session.intelStrength || 50)
+          // Sanitize deprecated ticker text
+          const savedHeadline = session.newsHeadline || "";
+          if (savedHeadline.includes("GLOBAL ALERT NETWORK ACTIVE")) {
+            setNewsHeadline("");
+          } else {
+            setNewsHeadline(savedHeadline);
+          }
         }
       } catch (e) {
         console.error('Error restoring session:', e)
@@ -67,11 +77,13 @@ function App() {
         territories,
         selectedModel,
         militaryData,
-        intelStrength
+        intelStrength,
+        newsHeadline
       }
       sessionStorage.setItem('gameSession', JSON.stringify(session))
     }
-  }, [gameStarted, playerFaction, messages, gameState, relationships, territories, selectedModel, militaryData, intelStrength])
+  }, [gameStarted, playerFaction, messages, gameState, relationships, territories, selectedModel, militaryData, intelStrength, newsHeadline])
+
 
   // Fetch available models on mount
   useEffect(() => {
@@ -93,6 +105,7 @@ function App() {
   const handleFactionSelect = async (faction) => {
     setPlayerFaction(faction)
     setIsProcessing(true)
+    setNewsHeadline("") // Clear any previous breaking news on new game
 
     try {
       // Request initial briefing from backend
@@ -209,6 +222,10 @@ function App() {
       console.log('Event data:', event, 'isRandomEvent:', isRandomEvent)
 
       if (isRandomEvent) {
+        // Update Breaking News Ticker
+        const headlineText = event.title ? `${event.title.toUpperCase()}: ${event.description}` : "CRISIS ALERT: " + (event.description || "UNKNOWN ANOMALY DETECTED");
+        setNewsHeadline(headlineText.toUpperCase());
+
         // Display random event with special formatting
         setMessages(prev => [...prev,
         { type: 'system', text: '' },
@@ -267,6 +284,19 @@ function App() {
         selectedModel={selectedModel}
         onModelChange={setSelectedModel}
       />
+
+      {/* Breaking News Ticker - Only show if there is news */}
+      {newsHeadline && (
+        <div className="news-ticker-bar">
+          <div className="news-label">BREAKING NEWS</div>
+          <div className="news-scroll-container">
+            <div className="news-content">
+              {newsHeadline} &nbsp;&nbsp;&nbsp; /// &nbsp;&nbsp;&nbsp; {newsHeadline} &nbsp;&nbsp;&nbsp; /// &nbsp;&nbsp;&nbsp; {newsHeadline}
+            </div>
+          </div>
+        </div>
+      )}
+
       <button
         className="back-to-menu-btn"
         onClick={() => {

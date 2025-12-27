@@ -31,6 +31,10 @@ class GameState:
                         state['oil'] = defaults['oil']
                     if 'tech' not in state:
                         state['tech'] = defaults['tech']
+                    if 'last_event_turn' not in state:
+                        state['last_event_turn'] = -5 # Ensure early event possibility
+                    if 'last_event_data' not in state:
+                        state['last_event_data'] = None
                         
                     return state
             except json.JSONDecodeError:
@@ -180,6 +184,8 @@ class GameState:
             "oil": 100,
             "tech": 50,
             "influence": 50,
+            "last_event_turn": -5,
+            "last_event_data": None,
             "relationships": {
                 "usa": {"sentiment": 0, "status": "neutral"},
                 "china": {"sentiment": 0, "status": "neutral"},

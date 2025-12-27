@@ -108,7 +108,12 @@ function FactionSelector({ onSelectFaction, isProcessing, availableModels = [], 
 
                 {/* Model Selector */}
                 <div className="model-selector-container">
-                    <label className="model-label">NEURAL BACKBONE:</label>
+                    <label className="model-label">
+                        NEURAL BACKBONE:
+                        <span style={{ fontSize: '0.8em', color: 'rgba(255, 255, 255, 0.5)', marginLeft: '10px', textTransform: 'none', fontWeight: 'normal' }}>
+                            (Recommended: gemma3:27b-it-qat)
+                        </span>
+                    </label>
                     <div className="select-wrapper">
                         <select
                             className="model-select"
