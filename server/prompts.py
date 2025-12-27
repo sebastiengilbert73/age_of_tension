@@ -382,7 +382,46 @@ INITIAL_WORLD_STATE = {
     'YE': 'neutral',
     'GL': 'neutral',
     'NZ': 'neutral',
-    'AU': 'neutral'
+    'AU': 'neutral',
+    # Additional countries - Middle East & Gulf
+    'SA': 'neutral',       # Saudi Arabia
+    'AE': 'neutral',       # UAE
+    'BH': 'neutral',       # Bahrain
+    # Central Asia
+    'MN': 'neutral',       # Mongolia
+    'TM': 'russia',        # Turkmenistan (Russia-aligned)
+    'UZ': 'neutral',       # Uzbekistan
+    'TJ': 'russia',        # Tajikistan (Russia-aligned)
+    'KG': 'russia',        # Kyrgyzstan (Russia-aligned)
+    'AZ': 'neutral',       # Azerbaijan
+    'GE': 'neutral',       # Georgia
+    'AM': 'russia',        # Armenia (Russia-aligned)
+    # South & Southeast Asia
+    'NP': 'neutral',       # Nepal
+    'BD': 'neutral',       # Bangladesh
+    'BT': 'neutral',       # Bhutan
+    'LK': 'neutral',       # Sri Lanka
+    'BN': 'neutral',       # Brunei
+    'TL': 'neutral',       # Timor-Leste
+    'TW': 'usa',           # Taiwan (USA-aligned)
+    # Africa additional
+    'EH': 'neutral',       # Western Sahara
+    'DJ': 'neutral',       # Djibouti
+    'BI': 'neutral',       # Burundi
+    'SZ': 'neutral',       # Eswatini
+    'LS': 'neutral',       # Lesotho
+    'GM': 'neutral',       # Gambia
+    'GW': 'neutral',       # Guinea-Bissau
+    # Americas additional
+    'GY': 'neutral',       # Guyana
+    'SR': 'neutral',       # Suriname
+    'GF': 'eu',            # French Guiana (France territory)
+    'BZ': 'neutral',       # Belize
+    'TT': 'neutral',       # Trinidad and Tobago
+    'PR': 'usa',           # Puerto Rico (USA territory)
+    # Europe additional
+    'CY': 'eu',            # Cyprus
+    'MT': 'eu'             # Malta
 }
 
 

@@ -152,7 +152,46 @@ export const INITIAL_COUNTRY_TO_FACTION = {
     'YE': 'neutral',
     'GL': 'neutral',
     'NZ': 'neutral',
-    'AU': 'neutral'
+    'AU': 'neutral',
+    // Additional countries - Middle East & Gulf
+    'SA': 'neutral',       // Saudi Arabia
+    'AE': 'neutral',       // UAE
+    'BH': 'neutral',       // Bahrain
+    // Central Asia
+    'MN': 'neutral',       // Mongolia
+    'TM': 'russia',        // Turkmenistan (Russia-aligned)
+    'UZ': 'neutral',       // Uzbekistan
+    'TJ': 'russia',        // Tajikistan (Russia-aligned)
+    'KG': 'russia',        // Kyrgyzstan (Russia-aligned)
+    'AZ': 'neutral',       // Azerbaijan
+    'GE': 'neutral',       // Georgia
+    'AM': 'russia',        // Armenia (Russia-aligned)
+    // South & Southeast Asia
+    'NP': 'neutral',       // Nepal
+    'BD': 'neutral',       // Bangladesh
+    'BT': 'neutral',       // Bhutan
+    'LK': 'neutral',       // Sri Lanka
+    'BN': 'neutral',       // Brunei
+    'TL': 'neutral',       // Timor-Leste
+    'TW': 'usa',           // Taiwan (USA-aligned)
+    // Africa additional
+    'EH': 'neutral',       // Western Sahara
+    'DJ': 'neutral',       // Djibouti
+    'BI': 'neutral',       // Burundi
+    'SZ': 'neutral',       // Eswatini
+    'LS': 'neutral',       // Lesotho
+    'GM': 'neutral',       // Gambia
+    'GW': 'neutral',       // Guinea-Bissau
+    // Americas additional
+    'GY': 'neutral',       // Guyana
+    'SR': 'neutral',       // Suriname
+    'GF': 'eu',            // French Guiana (France territory)
+    'BZ': 'neutral',       // Belize
+    'TT': 'neutral',       // Trinidad and Tobago
+    'PR': 'usa',           // Puerto Rico (USA territory)
+    // Europe additional
+    'CY': 'eu',            // Cyprus
+    'MT': 'eu'             // Malta
 }
 
 const FACTION_COLORS = {
@@ -190,7 +229,25 @@ const COUNTRY_NAMES = {
     'SK': 'Slovakia', 'HR': 'Croatia', 'RS': 'Serbia', 'BA': 'Bosnia', 'AL': 'Albania',
     'MK': 'North Macedonia', 'ME': 'Montenegro', 'XK': 'Kosovo', 'MD': 'Moldova', 'LT': 'Lithuania',
     'LV': 'Latvia', 'EE': 'Estonia', 'LU': 'Luxembourg', 'IS': 'Iceland', 'SI': 'Slovenia',
-    'PS': 'Palestine', 'NG': 'Nigeria', 'KE': 'Kenya', 'ET': 'Ethiopia', 'GH': 'Ghana'
+    'PS': 'Palestine', 'NG': 'Nigeria', 'KE': 'Kenya', 'ET': 'Ethiopia', 'GH': 'Ghana',
+    // Central Asia & Caucasus
+    'MN': 'Mongolia', 'TM': 'Turkmenistan', 'UZ': 'Uzbekistan', 'TJ': 'Tajikistan',
+    'KG': 'Kyrgyzstan', 'AZ': 'Azerbaijan', 'GE': 'Georgia', 'AM': 'Armenia',
+    // Middle East & Gulf
+    'AE': 'UAE', 'BH': 'Bahrain', 'OM': 'Oman', 'QA': 'Qatar', 'KW': 'Kuwait',
+    'JO': 'Jordan', 'LB': 'Lebanon', 'YE': 'Yemen',
+    // South & Southeast Asia
+    'NP': 'Nepal', 'BD': 'Bangladesh', 'BT': 'Bhutan', 'LK': 'Sri Lanka', 'MM': 'Myanmar',
+    'BN': 'Brunei', 'TL': 'Timor-Leste', 'TW': 'Taiwan', 'MY': 'Malaysia', 'SG': 'Singapore',
+    'KH': 'Cambodia', 'LA': 'Laos',
+    // Additional African & Others
+    'DJ': 'Djibouti', 'BI': 'Burundi', 'SZ': 'Eswatini', 'LS': 'Lesotho',
+    'GM': 'Gambia', 'GW': 'Guinea-Bissau', 'EH': 'Western Sahara',
+    // Americas
+    'GY': 'Guyana', 'SR': 'Suriname', 'GF': 'French Guiana', 'BZ': 'Belize',
+    'TT': 'Trinidad & Tobago', 'PR': 'Puerto Rico', 'GL': 'Greenland', 'NZ': 'New Zealand',
+    // Europe
+    'CY': 'Cyprus', 'MT': 'Malta'
 }
 
 const FACTION_NAMES = {
@@ -352,9 +409,9 @@ function WorldMap({ gameState, currentEvent, playerFaction, relationships = {}, 
                     )}
                 </AnimatePresence>
 
-                <svg width="100%" height="100%" viewBox="0 0 1010 666">
+                <svg width="100%" height="100%" viewBox="-13.473 -16.04 1021.74 944.62">
                     {/* World background */}
-                    <rect width="1010" height="666" fill="#050e1a" />
+                    <rect x="-100" y="-100" width="1200" height="1200" fill="#050e1a" />
 
                     {/* Ocean grid */}
                     <defs>
@@ -362,7 +419,7 @@ function WorldMap({ gameState, currentEvent, playerFaction, relationships = {}, 
                             <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(0,217,255,0.05)" strokeWidth="0.5" />
                         </pattern>
                     </defs>
-                    <rect width="1010" height="666" fill="url(#grid)" />
+                    <rect x="-100" y="-100" width="1200" height="1200" fill="url(#grid)" />
 
                     {/* Dot pattern for contested territories */}
                     <defs>
@@ -442,7 +499,7 @@ function WorldMap({ gameState, currentEvent, playerFaction, relationships = {}, 
                     })}
 
                     {/* DEFCON indicator */}
-                    <g transform="translate(20, 630)">
+                    <g transform="translate(20, 900)">
                         <text
                             x="0"
                             y="0"
