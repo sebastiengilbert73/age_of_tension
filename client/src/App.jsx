@@ -4,6 +4,7 @@ import Terminal from './components/Terminal'
 import StatusPanel from './components/StatusPanel'
 import WorldMap, { INITIAL_COUNTRY_TO_FACTION } from './components/WorldMap'
 import FactionSelector from './components/FactionSelector'
+import RandomEventModal from './components/RandomEventModal'
 import './App.css'
 
 function App() {
@@ -169,7 +170,9 @@ function App() {
       const { narrative, stats, event, relationships: updatedRelationships } = response.data
 
       // Store event for WorldMap
-      setCurrentEvent(event)
+      if (event && event.triggered) {
+        setCurrentEvent(event)
+      }
 
       // Update relationships if provided
       if (updatedRelationships) {
@@ -239,6 +242,10 @@ function App() {
   }
 
 
+  const handleEventDismiss = () => {
+    setCurrentEvent(null)
+  }
+
   // Show faction selector if game hasn't started
   if (!gameStarted) {
     return (
@@ -294,6 +301,11 @@ function App() {
           isProcessing={isProcessing}
         />
       </div>
+
+      <RandomEventModal
+        event={currentEvent}
+        onDismiss={handleEventDismiss}
+      />
     </div>
   )
 }

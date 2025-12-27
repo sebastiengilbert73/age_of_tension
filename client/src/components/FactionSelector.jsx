@@ -50,9 +50,10 @@ const FACTIONS = [
 function FactionSelector({ onSelectFaction, isProcessing, availableModels = [], selectedModel, onModelSelect }) {
     const [selectedFaction, setSelectedFaction] = useState(null)
     const [showResetNotification, setShowResetNotification] = useState(false)
+    const [isResetting, setIsResetting] = useState(false) // New state
 
     const handleSelect = (faction) => {
-        if (!isProcessing) {
+        if (!isProcessing && !isResetting) {
             setSelectedFaction(faction)
         }
     }
@@ -130,27 +131,31 @@ function FactionSelector({ onSelectFaction, isProcessing, availableModels = [], 
                 <motion.button
                     className="faction-confirm-btn"
                     onClick={handleConfirm}
-                    disabled={!selectedFaction || !selectedModel || isProcessing}
-                    whileHover={selectedFaction && selectedModel && !isProcessing ? { scale: 1.05 } : {}}
-                    whileTap={selectedFaction && selectedModel && !isProcessing ? { scale: 0.95 } : {}}
+                    disabled={!selectedFaction || !selectedModel || isProcessing || isResetting}
+                    whileHover={selectedFaction && selectedModel && !isProcessing && !isResetting ? { scale: 1.05 } : {}}
+                    whileTap={selectedFaction && selectedModel && !isProcessing && !isResetting ? { scale: 0.95 } : {}}
                     style={{
-                        opacity: (!selectedFaction || !selectedModel) ? 0.5 : 1,
-                        cursor: (!selectedFaction || !selectedModel) ? 'not-allowed' : 'pointer'
+                        opacity: (!selectedFaction || !selectedModel || isResetting) ? 0.5 : 1,
+                        cursor: (!selectedFaction || !selectedModel || isResetting) ? 'not-allowed' : 'pointer'
                     }}
                 >
                     {isProcessing
                         ? 'INITIALIZING...'
-                        : !selectedModel
-                            ? 'LINK NEURAL BACKBONE'
-                            : selectedFaction
-                                ? `BEGIN AS ${selectedFaction.name.toUpperCase()}`
-                                : 'SELECT A FACTION'}
+                        : isResetting
+                            ? 'RESETTING WORLD...'
+                            : !selectedModel
+                                ? 'LINK NEURAL BACKBONE'
+                                : selectedFaction
+                                    ? `BEGIN AS ${selectedFaction.name.toUpperCase()}`
+                                    : 'SELECT A FACTION'}
                 </motion.button>
                 {!isProcessing && (
                     <button
                         className="reset-game-btn"
+                        disabled={isResetting}
                         onClick={async () => {
                             if (confirm('WARNING: This will delete your save file and restart the game world. Are you sure?')) {
+                                setIsResetting(true)
                                 try {
                                     const axios = (await import('axios')).default
                                     await axios.post('/api/reset')
@@ -165,11 +170,12 @@ function FactionSelector({ onSelectFaction, isProcessing, availableModels = [], 
                                     }, 2000)
                                 } catch (e) {
                                     alert('Failed to reset game: ' + e.message)
+                                    setIsResetting(false)
                                 }
                             }
                         }}
                     >
-                        ⚠️ RESET WORLD STATE
+                        {isResetting ? "⚠️ RESETTING..." : "⚠️ RESET WORLD STATE"}
                     </button>
                 )}
             </motion.div>

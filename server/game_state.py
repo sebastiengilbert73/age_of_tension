@@ -53,9 +53,9 @@ class GameState:
     def initialize_default_state(self):
         """Initialize military forces based on faction alignment"""
         import random
-        import copy
+        
         military = {}
-        ownership = copy.deepcopy(INITIAL_WORLD_STATE) # Deep copy to be safe
+        ownership = INITIAL_WORLD_STATE.copy()
         
         for code, faction in INITIAL_WORLD_STATE.items():
             # ==========================================
@@ -99,15 +99,15 @@ class GameState:
             elif code == 'CN': # China
                 troops_range = (1900000, 2300000)
                 navy_range = (300, 450)
-                airforce_range = (2500, 3500)
+                airforce_range = (2000, 3200)
             elif code == 'RU': # Russia
-                troops_range = (900000, 1200000)
+                troops_range = (800000, 1000000)
                 navy_range = (200, 350)
-                airforce_range = (2500, 4000)
+                airforce_range = (1500, 2500)
             elif code == 'IN': # India
-                troops_range = (1300000, 1500000)
-                navy_range = (150, 250)
-                airforce_range = (1800, 2200)
+                troops_range = (1200000, 1500000)
+                navy_range = (100, 180)
+                airforce_range = (800, 1500)
             elif code == 'KP': # North Korea 
                 troops_range = (1100000, 1300000)
                 navy_range = (50, 80) # subs
@@ -118,9 +118,11 @@ class GameState:
                 airforce_range = (400, 600)
             elif code == 'IL': # Israel
                 troops_range = (150000, 200000)
+                navy_range = (10, 30)
                 airforce_range = (400, 600) # Highly advanced
             elif code == 'TR': # Turkey
                 troops_range = (300000, 450000)
+                navy_range = (50, 100)
                 airforce_range = (250, 400)
             elif code == 'IR': # Iran
                 troops_range = (500000, 700000)
@@ -148,7 +150,6 @@ class GameState:
             },
             "turn_count": 0,
             "year": 2027,
-            "defcon": 5,
             "defcon": 5,
             "resources": 1000,
             "oil": 100,

@@ -6,8 +6,15 @@ import json
 from prompts import get_game_master_prompt
 from game_state import GameState
 
+import datetime
+
 app = FastAPI()
 state_manager = GameState()
+
+# Logging helper
+def log(msg):
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"[{timestamp}] {msg}")
 
 # Add CORS middleware
 app.add_middleware(
@@ -32,7 +39,7 @@ from fastapi.responses import JSONResponse
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request, exc):
-    print(f"VALIDATION ERROR: {exc}")
+    log(f"VALIDATION ERROR: {exc}")
     return JSONResponse(
         status_code=422,
         content={"detail": str(exc)},
@@ -43,9 +50,9 @@ async def process_turn(data: PlayerInput):
     """
     Process a player's turn by sending it to Ollama and returning the response
     """
-    print(f"--> RECEIVED /api/turn REQUEST from {data.faction}")
-    print(f"    Input: {data.input}")
-    print(f"    History Length: {len(data.history)}")
+    log(f"--> RECEIVED /api/turn REQUEST from {data.faction}")
+    log(f"    Input: {data.input}")
+    log(f"    History Length: {len(data.history)}")
     
     try:
         # Build conversation history for context
@@ -99,7 +106,7 @@ async def process_turn(data: PlayerInput):
         })
         
         # Call Ollama API
-        print(f"Sending request to Ollama (Model: {data.model}, Context: 16384)...")
+        log(f"Sending request to Ollama (Model: {data.model}, Context: 16384)...")
         try:
             ollama_response = requests.post(
                 OLLAMA_URL,
@@ -116,25 +123,25 @@ async def process_turn(data: PlayerInput):
             )
             
             if ollama_response.status_code != 200:
-                print(f"Ollama API Error: {ollama_response.status_code} - {ollama_response.text}")
+                log(f"Ollama API Error: {ollama_response.status_code} - {ollama_response.text}")
                 raise HTTPException(
                     status_code=500,
                     detail=f"Ollama API error: {ollama_response.text}"
                 )
         except Exception as e:
-            print(f"FAILED to connect to Ollama: {e}")
+            log(f"FAILED to connect to Ollama: {e}")
             import traceback
             traceback.print_exc()
             raise HTTPException(status_code=500, detail=f"LLM Connection Failed: {str(e)}")
 
         # Parse Ollama response
-        print("Received response from Ollama. Parsing...")
+        log("Received response from Ollama. Parsing...")
         ollama_data = ollama_response.json()
         assistant_message = ollama_data.get("message", {}).get("content", "")
         
         # Check if response is empty
         if not assistant_message.strip():
-            print("WARNING: Empty response from Ollama")
+            log("WARNING: Empty response from Ollama")
             raise HTTPException(
                 status_code=500,
                 detail="LLM returned empty response. Try again or check model."
@@ -145,11 +152,15 @@ async def process_turn(data: PlayerInput):
             game_response = json.loads(assistant_message)
             
             # Debug logging to see what the LLM returned
-            print(f"DEBUG: LLM Response keys: {list(game_response.keys())}")
+            log(f"DEBUG: LLM Response keys: {list(game_response.keys())}")
+            
+            if "reasoning" in game_response:
+                log(f"🧠 AI REASONING: {game_response['reasoning']}")
+                
             if "territory_updates" in game_response:
-                print(f"DEBUG: territory_updates received: {game_response['territory_updates']}")
+                log(f"DEBUG: territory_updates received: {game_response['territory_updates']}")
             else:
-                print("WARNING: No territory_updates field in LLM response")
+                log("WARNING: No territory_updates field in LLM response")
             
             # Process military updates
             if "military_updates" in game_response:
@@ -178,7 +189,7 @@ async def process_turn(data: PlayerInput):
             
             while narrative.strip().endswith("...") and retry_count < max_retries:
                 retry_count += 1
-                print(f"WARNING: Detected truncated response (attempt {retry_count}/{max_retries}), requesting continuation...")
+                log(f"WARNING: Detected truncated response (attempt {retry_count}/{max_retries}), requesting continuation...")
                 
                 # Add the truncated response to messages and ask for continuation
                 messages.append({
@@ -218,29 +229,29 @@ async def process_turn(data: PlayerInput):
                             
                             game_response["narrative"] = narrative.rstrip(".").rstrip() + " " + continuation_text
                             narrative = game_response["narrative"]
-                            print(f"Combined narrative, new length: {len(narrative)}")
+                            log(f"Combined narrative, new length: {len(narrative)}")
                         else:
-                            print("WARNING: Continuation missing narrative field")
+                            log("WARNING: Continuation missing narrative field")
                             break
                     except json.JSONDecodeError as e:
-                        print(f"WARNING: Continuation failed to parse as JSON: {e}")
+                        log(f"WARNING: Continuation failed to parse as JSON: {e}")
                         break
                 else:
-                    print(f"WARNING: Retry request failed with status {retry_response.status_code}")
+                    log(f"WARNING: Retry request failed with status {retry_response.status_code}")
                     break
             
             if retry_count > 0:
                 if narrative.strip().endswith("..."):
-                    print(f"WARNING: Response still truncated after {retry_count} retries")
+                    log(f"WARNING: Response still truncated after {retry_count} retries")
                 else:
-                    print(f"SUCCESS: Completed truncated response after {retry_count} retries")
+                    log(f"SUCCESS: Completed truncated response after {retry_count} retries")
             
             # FIX: Handle common hallucinations where LLM wraps narrative in "response", "answer", etc.
             if "narrative" not in game_response:
                 # Check for common hallucinated keys
                 for bad_key in ["response", "answer", "content", "result", "output"]:
                     if bad_key in game_response:
-                        print(f"WARNING: Found hallucinated key '{bad_key}', mapping to 'narrative'")
+                        log(f"WARNING: Found hallucinated key '{bad_key}', mapping to 'narrative'")
                         game_response["narrative"] = game_response[bad_key]
                         break
             
@@ -282,7 +293,7 @@ async def process_turn(data: PlayerInput):
                 forces_list.extend(process_forces_container(game_response["allied_territories"]))
 
             if should_convert and forces_list:
-                print("WARNING: Found structured military data. Converting to Markdown table.")
+                log("WARNING: Found structured military data. Converting to Markdown table.")
                 
                 # Create table header
                 table_md = "\n\n| Country | Troops | Navy (Ships) | Air Force (Jets) |\n|---|---|---|---|\n"
@@ -315,7 +326,7 @@ async def process_turn(data: PlayerInput):
             
             # Validate required fields
             if "narrative" not in game_response:
-                print("WARNING: Missing 'narrative' field in response")
+                log("WARNING: Missing 'narrative' field in response")
                 # Fallback: If it's a string, use it. If it's a dict, try to convert to string
                 if isinstance(assistant_message, str):
                     game_response["narrative"] = assistant_message
@@ -332,7 +343,7 @@ async def process_turn(data: PlayerInput):
                 }
             
             if "stats" not in game_response:
-                print("WARNING: Missing 'stats' field in response")
+                log("WARNING: Missing 'stats' field in response")
                 game_response["stats"] = {
                     "defcon": 5,
                     "year": 2027,
@@ -363,7 +374,7 @@ async def process_turn(data: PlayerInput):
                     is_question = any(player_input.strip().startswith(word) for word in question_words)
                     
                     if is_question:
-                        print(f"WARNING: Correcting event type - player asked a question: '{data.input[:50]}'")
+                        log(f"WARNING: Correcting event type - player asked a question: '{data.input[:50]}'")
                         game_response["event"] = {
                             "type": "player_response",
                             "triggered": False
@@ -380,8 +391,8 @@ async def process_turn(data: PlayerInput):
             
         except json.JSONDecodeError as e:
             # Fallback if LLM doesn't return valid JSON
-            print(f"WARNING: Failed to parse JSON: {e}")
-            print(f"Raw response: {assistant_message[:200]}...")
+            log(f"WARNING: Failed to parse JSON: {e}")
+            log(f"Raw response: {assistant_message[:200]}...")
             return {
                 "narrative": assistant_message if assistant_message else "Error: The AI system encountered an issue generating a response. Please try again.",
                 "stats": {
@@ -405,19 +416,19 @@ async def process_turn(data: PlayerInput):
             }
     
     except requests.exceptions.ConnectionError:
-        print("ERROR: Cannot connect to Ollama")
+        log("ERROR: Cannot connect to Ollama")
         raise HTTPException(
             status_code=503,
             detail="Cannot connect to Ollama. Make sure Ollama is running (ollama serve)"
         )
     except requests.exceptions.Timeout:
-        print("ERROR: Ollama request timed out")
+        log("ERROR: Ollama request timed out")
         raise HTTPException(
             status_code=504,
             detail="Ollama request timed out. The model might be processing."
         )
     except Exception as e:
-        print(f"ERROR: Unexpected error occurred: {type(e).__name__}: {str(e)}")
+        log(f"ERROR: Unexpected error occurred: {type(e).__name__}: {str(e)}")
         import traceback
         traceback.print_exc()
         raise HTTPException(
@@ -435,7 +446,7 @@ async def generate_briefing(data: dict):
         faction_name = data.get("factionName")
         model = data.get("model", MODEL_NAME)
         
-        print(f"Generating briefing for faction: {faction_name}")
+        log(f"Generating briefing for faction: {faction_name}")
         
         # Build the briefing request
         messages = [
@@ -462,7 +473,7 @@ async def generate_briefing(data: dict):
         )
         
         if ollama_response.status_code != 200:
-            print(f"ERROR: Ollama API error: {ollama_response.text}")
+            log(f"ERROR: Ollama API error: {ollama_response.text}")
             raise HTTPException(
                 status_code=500,
                 detail=f"Ollama API error: {ollama_response.text}"
@@ -472,7 +483,7 @@ async def generate_briefing(data: dict):
         ollama_data = ollama_response.json()
         assistant_message = ollama_data.get("message", {}).get("content", "")
         
-        print(f"Ollama response received, length: {len(assistant_message)}")
+        log(f"Ollama response received, length: {len(assistant_message)}")
         
         try:
             briefing_response = json.loads(assistant_message)
@@ -480,7 +491,7 @@ async def generate_briefing(data: dict):
             # Check for truncation
             narrative = briefing_response.get("narrative", "")
             if narrative.strip().endswith("..."):
-                print("WARNING: Detected truncated briefing, requesting continuation...")
+                log("WARNING: Detected truncated briefing, requesting continuation...")
                 
                 messages.append({
                     "role": "assistant",
@@ -510,9 +521,9 @@ async def generate_briefing(data: dict):
                         continuation = json.loads(retry_message)
                         if "narrative" in continuation:
                             briefing_response["narrative"] = narrative.rstrip("...") + " " + continuation["narrative"]
-                        print("Successfully retrieved briefing continuation")
+                        log("Successfully retrieved briefing continuation")
                     except json.JSONDecodeError:
-                        print("WARNING: Briefing continuation failed to parse")
+                        log("WARNING: Briefing continuation failed to parse")
             
             if "relationships" not in briefing_response:
                 briefing_response["relationships"] = {
@@ -532,7 +543,7 @@ async def generate_briefing(data: dict):
 
             return briefing_response
         except json.JSONDecodeError as e:
-            print(f"WARNING: Failed to parse briefing JSON: {e}")
+            log(f"WARNING: Failed to parse briefing JSON: {e}")
             return {
                 "narrative": assistant_message if assistant_message else f"Welcome, Commander of {faction_name}. The world is in a state of heightened tension. Your decisions will shape the future of global affairs.",
                 "stats": {
@@ -552,7 +563,7 @@ async def generate_briefing(data: dict):
             }
     
     except Exception as e:
-        print(f"ERROR: Briefing generation failed: {type(e).__name__}: {str(e)}")
+        log(f"ERROR: Briefing generation failed: {type(e).__name__}: {str(e)}")
         import traceback
         traceback.print_exc()
         raise HTTPException(
@@ -569,28 +580,16 @@ async def reset_game():
     log_file = "debug_server.log"
     timestamp = datetime.datetime.now().isoformat()
     
-    print("--> RECEIVED /api/reset REQUEST")
+    log("--> RECEIVED /api/reset REQUEST")
     
-    # Delete save file if it exists
-    if os.path.exists(state_manager.SAVE_FILE):
-        try:
-            os.remove(state_manager.SAVE_FILE)
-            print(f"Deleted save file: {state_manager.SAVE_FILE}")
-        except Exception as e:
-            print(f"Error deleting save file: {e}")
-            raise HTTPException(status_code=500, detail=f"Failed to reset game: {e}")
-    
-    # Re-initialize state manager
-    new_state = state_manager.initialize_default_state()
-    state_manager.state = new_state
-    state_manager.save_state()
-    
-    with open(log_file, "a") as f:
-        f.write(f"[{timestamp}] RESET PERFORMED. New Budget: {state_manager.state.get('resources')}, Oil: {state_manager.state.get('oil')}\n")
-    
-    print("Game state re-initialized to defaults")
-    
-    return {"status": "success", "message": "Game reset successfully"}
+    try:
+        # Use robustness reset method
+        state_manager.reset()
+        log("Game state explicitly reset to defaults")
+        return {"status": "success", "message": "Game reset successfully"}
+    except Exception as e:
+        log(f"Error resetting game: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to reset game: {e}")
 
 @app.get("/api/models")
 async def get_models():
