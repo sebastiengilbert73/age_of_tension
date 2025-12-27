@@ -342,15 +342,66 @@ async def process_turn(data: PlayerInput):
                     "india": {"sentiment": 0, "status": "neutral"}
                 }
             
-            if "stats" not in game_response:
-                log("WARNING: Missing 'stats' field in response")
-                game_response["stats"] = {
-                    "defcon": 5,
-                    "year": 2027,
-                    "resources": 1000,
-                    "influence": 50,
-                    "turn_count": 1
-                }
+            # ------------------------------------------------------------------
+            # STATE UPDATE LOGIC (DELTAS)
+            # ------------------------------------------------------------------
+            # 1. Handle Global Stats (Absolute)
+            if "general_stats" in game_response:
+                gen_stats = game_response["general_stats"]
+                if "defcon" in gen_stats:
+                    state_manager.state["defcon"] = gen_stats["defcon"]
+                if "year" in gen_stats:
+                    state_manager.state["year"] = gen_stats["year"]
+            
+            # 2. Handle Resource Updates (Deltas)
+            if "resource_updates" in game_response:
+                updates = game_response["resource_updates"]
+                
+                # Helper to apply delta with clamp
+                def apply_delta(key, delta):
+                    current = state_manager.state.get(key, 0)
+                    new_val = max(0, current + delta)
+                    state_manager.state[key] = new_val
+                    return new_val
+
+                apply_delta("resources", updates.get("budget", 0)) # Mapped to 'resources' internally
+                apply_delta("oil", updates.get("oil", 0))
+                apply_delta("tech", updates.get("tech", 0))
+                apply_delta("influence", updates.get("influence", 0))
+
+                # Increment turn count if not explicit
+                state_manager.state["turn_count"] = state_manager.state.get("turn_count", 0) + 1
+            
+            # 3. Fallback for legacy 'stats' object (if LLM ignores instructions)
+            elif "stats" in game_response:
+                # If LLM returns absolute stats, we try to use them but warn
+                log("WARNING: LLM returned absolute 'stats' instead of 'resource_updates'. Using as absolute values.")
+                old_stats = game_response["stats"]
+                for k, v in old_stats.items():
+                    if k == 'budget': k = 'resources' # Map back
+                    if k in state_manager.state:
+                         state_manager.state[k] = v
+            
+            # Save the updated state
+            state_manager.save_state()
+
+            # ------------------------------------------------------------------
+            # CONSTRUCT FRONTEND RESPONSE
+            # ------------------------------------------------------------------
+            # Frontend expects a single flattened 'stats' object with absolute values
+            final_stats = {
+                "defcon": state_manager.state.get("defcon", 5),
+                "year": state_manager.state.get("year", 2027),
+                "budget": state_manager.state.get("resources", 1000),
+                "oil": state_manager.state.get("oil", 100),
+                "tech": state_manager.state.get("tech", 50),
+                "influence": state_manager.state.get("influence", 50),
+                "turn_count": state_manager.state.get("turn_count", 0),
+                "intel": intel_strength # Inject current intel
+            }
+            
+            # Replace/Inject into game_response for frontend
+            game_response["stats"] = final_stats
             
             if "event" not in game_response:
                 game_response["event"] = {

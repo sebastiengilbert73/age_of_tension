@@ -50,6 +50,31 @@ class GameState:
             if os.path.exists(temp_file):
                 os.remove(temp_file)
 
+    def reset(self):
+        """Explicitly reset the game state"""
+        import os
+        import time
+        
+        # Try to remove, but don't fail if we can't (e.g. file locked)
+        if os.path.exists(self.SAVE_FILE):
+             try:
+                 os.remove(self.SAVE_FILE)
+             except OSError as e:
+                 print(f"Warning: Could not remove save file (might be locked): {e}")
+                 # Wait a beat in case it helps
+                 time.sleep(0.1)
+        
+        # Force a fresh state
+        self.state = self.initialize_default_state()
+        
+        # Ensure we can save this new state
+        try:
+            self.save_state()
+        except Exception as e:
+            # Fallback: if save fails, at least in-memory state is reset
+            print(f"CRITICAL: Failed to save reset state: {e}")
+            raise e
+            
     def initialize_default_state(self):
         """Initialize military forces based on faction alignment"""
         import random

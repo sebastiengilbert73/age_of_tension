@@ -25,14 +25,15 @@ You MUST respond with valid JSON in this exact structure. DO NOT ADD ANY OTHER K
 {
     "reasoning": "Step-by-step logic: 1. Identify Action Cost (e.g. 40 Tech). 2. Check Current Tech (e.g. 10). 3. Compare: 10 < 40. 4. Result: Deny action due to insufficient funds.",
     "narrative": "Your narrative response here (2-4 sentences, dramatic and tense)",
-    "stats": {
+    "resource_updates": {
+        "budget": -100,
+        "oil": 0,
+        "tech": 10,
+        "influence": -5
+    },
+    "general_stats": {
         "defcon": 5,
-        "year": 2027,
-        "budget": 1000,
-        "oil": 100,
-        "tech": 50,
-        "influence": 50,
-        "turn_count": 1
+        "year": 2027
     },
     "event": {
         "type": "random_event|player_response|none",
@@ -140,14 +141,16 @@ RULES:
     - **MATH PRECISION**: You are a computer. Perform arithmetic perfectly.
       - If you subtract 100,000 from Source, you MUST add EXACTLY 100,000 to Destination.
 16. **NO NEGATIVE RESOURCES**: Resources (Budget, Oil, Tech) CANNOT go below 0.
-    - If a player tries to perform an action that costs more than they have, you MUST either:
-      a) **Rejection**: Deny the action in the narrative (e.g., "Insufficient funds. Operation cancelled."), OR
-      b) **Debt/Penalty**: Allow it but set the resource to 0 and describe a severe penalty or debt (e.g., "You strained your economy to the breaking point. Information obtained, but Budget is empty.").
-    - NEVER return a negative number for Budget, Oil, or Tech in the `stats` object. Clamp them to 0.
-17. **STAT CONTINUITY (CRITICAL)**: Unless an action explicitly changes a stat (e.g. spending money, losing a battle), you **MUST** return the EXACT SAME values for stats as provided in the Context.
-    - DO NOT randomly fluctuate Tech, Oil, or Budget.
-    - If the player asks a question (like "Status Report"), NO stats should change. Return the input stats exactly as they are.
-    - **Stability is key** to the simulation. Random jumps (e.g. Tech 10 -> 80) break immersion.
+    - If a player tries to perform an action that costs more than they have, you MUST **REJECT** the action.
+    - **Rejection**: Deny the action in the narrative (e.g., "Insufficient Tech. Operation requires 20 Tech, but you only have 0. Mission cancelled.").
+    - Do NOT allow the action to proceed with a penalty.
+    - Do NOT return a negative delta that would result in a negative total.
+17. **RESOURCE UPDATES (DELTAS ONLY)**: You must ONLY return the CHANGE (delta) in resources, NOT the total.
+    - **Incorrect**: `"budget": 900` (This sets the budget to 900, ignoring previous balance).
+    - **Correct**: `"budget": -100` (This subtracts 100 from the current balance).
+    - Use 0 for no change.
+    - If the player asks a question and no resources are spent, return 0 for all updates.
+    - Global stats (`defcon`, `year`) should still be returned as absolute values in `general_stats`.
 18. **MANDATORY TABLE FORMAT FOR DATA REPORTS**: When the player asks about military forces, territories, resources, or any quantitative data, you MUST use a Markdown table. Paragraph/prose format is STRICTLY FORBIDDEN for data reports.
     - **REQUIRED FORMAT**: 
       ```
@@ -159,7 +162,7 @@ RULES:
     - **Step 1**: Identify the player's intent and any associated costs (e.g., "Attack needs 40 Tech").
     - **Step 2**: Check current resources (e.g., "Player has 10 Tech").
     - **Step 3**: Perform the comparison (e.g., "10 < 40").
-    - **Step 4**: Determine outcome (e.g., "REJECT action" or "ALLOW with penalty").
+    - **Step 4**: Determine outcome: **IF cost > current, YOU MUST REJECT.** Do not proceed.
     - **Step 5**: Only THEN generate the narrative and updated stats.
     - This internal monologue helps you avoid logic errors.
     - **TERRITORIES**: When asked "What are my forces?", you MUST report ALL countries that are currently owned by the player's faction according to the "CURRENT WORLD GEOPOLITICAL STATE" section above. This includes BOTH traditional alliance members AND recently conquered/annexed territories. If the player has conquered a country (e.g., Kazakhstan), it MUST appear in your force report.
